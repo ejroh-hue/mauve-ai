@@ -13,7 +13,23 @@ from pykrx import stock as pykrx
 
 @lru_cache(maxsize=1)
 def get_usd_krw() -> float:
-    """USD/KRW 환율 조회 (캐시 1회)"""
+    """USD/KRW 환율 조회 (캐시 1회) — 네이버 우선, yfinance fallback"""
+    # 1. 네이버 금융 환율
+    try:
+        resp = requests.get(
+            "https://m.stock.naver.com/front-api/v1/marketIndex/productDetail",
+            params={"category": "exchange", "reutersCode": "FX_USDKRW"},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            price = data.get("result", {}).get("calcPrice")
+            if price and float(price) > 0:
+                return float(price)
+    except Exception:
+        pass
+    # 2. yfinance fallback
     try:
         import yfinance as yf
         rate = yf.Ticker("USDKRW=X").fast_info.get("lastPrice")
@@ -21,7 +37,7 @@ def get_usd_krw() -> float:
             return float(rate)
     except Exception:
         pass
-    return 1350.0  # fallback
+    return 1450.0  # fallback (최근 환율 근사치)
 
 
 def fetch_us_ohlcv(ticker: str, days: int = 120) -> pd.DataFrame:
