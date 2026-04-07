@@ -1,0 +1,12 @@
+pykrx>=1.0.45
+pandas>=2.0
+ta>=0.11
+anthropic>=0.39
+streamlit>=1.30
+plotly>=5.18,<6
+pyyaml>=6.0
+requests>=2.31
+beautifulsoup4>=4.12
+python-dotenv>=1.0
+google-generativeai>=0.7
+yfinance>=0.2.31

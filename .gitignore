@@ -1,0 +1,9 @@
+.env
+data/*.db
+data/history.db
+__pycache__/
+*.pyc
+*.pyo
+.streamlit/secrets.toml
+_workspace/
+.claude/

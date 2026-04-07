@@ -1,0 +1,15 @@
+analysis:
+  lookback_days: 120
+  quant_weight: 0.6
+  llm_weight: 0.4
+  buy_threshold: 0.3
+  sell_threshold: -0.3
+
+portfolio:
+  cut_loss_threshold: -15.0
+  take_profit_threshold: 20.0
+  max_position_pct: 15.0
+
+screener:
+  universe_size: 50
+  top_n: 10
