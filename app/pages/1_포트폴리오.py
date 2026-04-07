@@ -197,16 +197,21 @@ def summary_cards(advices_list, is_us=False):
 
 def stock_tabs(df):
     """전체/긴급/수익/손실 탭"""
+    sort_col = "종합" if "종합" in df.columns else "퀀트"
+    has_advice = "조언" in df.columns
     t1, t2, t3, t4 = st.tabs(["전체 종목", "긴급 조언", "수익 종목", "손실 종목"])
     with t1:
-        st.dataframe(df.sort_values("종합", ascending=False),
+        st.dataframe(df.sort_values(sort_col, ascending=False),
                      use_container_width=True, hide_index=True)
     with t2:
-        urgent = df[df["조언"].str.contains("손절|익절|물타기|비중축소")]
-        if not urgent.empty:
-            st.dataframe(urgent, use_container_width=True, hide_index=True)
+        if has_advice:
+            urgent = df[df["조언"].str.contains("손절|익절|물타기|비중축소")]
+            if not urgent.empty:
+                st.dataframe(urgent, use_container_width=True, hide_index=True)
+            else:
+                st.success("긴급 조언 대상 종목이 없습니다.")
         else:
-            st.success("긴급 조언 대상 종목이 없습니다.")
+            st.info("전체 분석을 실행하면 긴급 조언을 확인할 수 있습니다.")
     with t3:
         st.dataframe(df[df["수익률(%)"] > 0].sort_values("수익률(%)", ascending=False),
                      use_container_width=True, hide_index=True)
