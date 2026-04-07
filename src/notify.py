@@ -40,7 +40,7 @@ def notify_signals(advices: list) -> int:
     if not alerts:
         return 0
 
-    lines = ["<b>📊 KRX 주식 AI 알림</b>\n"]
+    lines = ["<b>📊 MAUVE 주식 AI 알림</b>\n"]
     for a in alerts:
         icon = {"손절검토": "🔴", "익절검토": "💰", "추가매수": "🟢",
                 "물타기주의": "⚠️", "비중축소검토": "🔻"}.get(a.action, "●")

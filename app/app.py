@@ -1,4 +1,4 @@
-"""KRX 주식 AI 에이전트 — Streamlit 대시보드"""
+"""MAUVE 주식 AI 에이전트 — Streamlit 대시보드"""
 
 import sys
 import os
@@ -19,7 +19,7 @@ except FileNotFoundError:
     pass  # no secrets file (local dev with .env)
 
 st.set_page_config(
-    page_title="KRX 주식 AI 에이전트",
+    page_title="MAUVE 주식 AI 에이전트",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -54,7 +54,7 @@ def check_password() -> bool:
 if not check_password():
     st.stop()
 
-st.title("📈 KRX 주식 AI 에이전트")
+st.title("📈 MAUVE 주식 AI 에이전트")
 st.markdown("퀀트 분석 + 뉴스 감성분석 + 수급 분석 기반 포트폴리오 관리")
 
 # 사이드바
