@@ -6,8 +6,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import streamlit as st
 st.set_page_config(page_title="시그널 히스토리", page_icon="📜", layout="wide")
 
-from app.auth import require_login
-require_login()
+
+import streamlit as _st_auth
+try:
+    correct_pw = _st_auth.secrets["APP_PASSWORD"]
+    if not _st_auth.session_state.get("authenticated", False):
+        _st_auth.warning("로그인이 필요합니다. 메인 페이지에서 로그인해주세요.")
+        _st_auth.stop()
+except (FileNotFoundError, KeyError):
+    pass
 
 import pandas as pd
 import plotly.express as px
