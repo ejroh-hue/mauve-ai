@@ -67,7 +67,7 @@ def _parse_response(text: str) -> LLMSignal:
 def _analyze_with_gemini(prompt: str, news_count: int) -> LLMSignal:
     import google.generativeai as genai
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     print(f"    [LLM] Gemini 감성분석 중... (뉴스 {news_count}건)")
     response = model.generate_content(prompt)
     return _parse_response(response.text.strip())

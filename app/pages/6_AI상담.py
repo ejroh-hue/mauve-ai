@@ -30,7 +30,7 @@ if not GEMINI_KEY:
     st.stop()
 
 genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 
 @st.cache_data(ttl=600)
@@ -132,10 +132,13 @@ if "messages" not in st.session_state:
 with st.spinner("포트폴리오 데이터 로딩 중..."):
     portfolio_context = get_portfolio_context()
 
-# 사이드바에 포트폴리오 요약
+# 사이드바에 포트폴리오 요약 (깔끔하게)
 with st.sidebar:
-    st.subheader("📊 현재 포트폴리오")
-    st.text(portfolio_context[:500] + "..." if len(portfolio_context) > 500 else portfolio_context)
+    st.subheader("📊 포트폴리오 요약")
+    holdings = load_portfolio()
+    kr_cnt = sum(1 for h in holdings if not is_us_ticker(h.ticker))
+    us_cnt = sum(1 for h in holdings if is_us_ticker(h.ticker))
+    st.markdown(f"**총 {len(holdings)}종목** (KR {kr_cnt} / US {us_cnt})")
     if st.button("🔄 데이터 새로고침"):
         st.cache_data.clear()
         st.rerun()
