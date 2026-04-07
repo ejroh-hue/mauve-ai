@@ -26,8 +26,9 @@ import plotly.express as px
 st.title("💼 포트폴리오 현황")
 
 
-from src.data.market import is_us_ticker, get_usd_krw, get_realtime_price
+from src.data.market import is_us_ticker, get_usd_krw, get_realtime_price, fetch_ohlcv, fetch_us_ohlcv
 from src.data.portfolio import load_portfolio
+from src.analysis.quant import analyze_quant
 from src.models import PortfolioAdvice, FinalSignal
 
 
@@ -37,19 +38,31 @@ def run_analysis():
     return analyze_portfolio()
 
 
+@st.cache_data(ttl=300)
 def run_price_only():
-    """가격만 업데이트 — AI 분석 없이 실시간 가격/손익만 계산"""
+    """가격+퀀트 업데이트 — AI 분석 없이 실시간 가격/손익/퀀트 점수 계산"""
     holdings = load_portfolio()
     usd_krw_rate = get_usd_krw()
 
     # 총 평가액 계산
     prices = {}
+    quant_signals = {}
     for h in holdings:
         p = get_realtime_price(h.ticker)
         if p > 0:
             prices[h.ticker] = p
         else:
-            prices[h.ticker] = h.buy_price  # fallback
+            prices[h.ticker] = h.buy_price
+
+        # 퀀트 점수 계산
+        try:
+            if is_us_ticker(h.ticker):
+                df = fetch_us_ohlcv(h.ticker, days=120)
+            else:
+                df = fetch_ohlcv(h.ticker, days=120)
+            quant_signals[h.ticker] = analyze_quant(h.ticker, df)
+        except Exception:
+            quant_signals[h.ticker] = None
 
     total_eval = sum(
         prices[h.ticker] * h.quantity * (usd_krw_rate if is_us_ticker(h.ticker) else 1)
@@ -66,10 +79,13 @@ def run_price_only():
         pnl_pct = ((cur_price - h.buy_price) / h.buy_price * 100) if h.buy_price > 0 else 0
         weight_pct = (eval_amount / total_eval * 100) if total_eval > 0 else 0
 
+        q = quant_signals.get(h.ticker)
+        q_score = q.score if q else 0
+
         signal = FinalSignal(
             ticker=h.ticker, name=h.name, action="HOLD",
-            combined_score=0, quant_score=0, llm_score=0,
-            current_price=cur_price, analysis_summary="가격만 업데이트",
+            combined_score=q_score, quant_score=q_score, llm_score=0,
+            current_price=cur_price, analysis_summary="퀀트만 분석 (AI 미포함)",
         )
         advices.append(PortfolioAdvice(
             ticker=h.ticker, name=h.name,
@@ -77,7 +93,7 @@ def run_price_only():
             quantity=h.quantity, eval_amount=eval_amount,
             pnl_amount=pnl_amount, pnl_pct=pnl_pct,
             weight_pct=weight_pct, signal=signal,
-            action="—", reasoning="가격만 업데이트",
+            action="—", reasoning="퀀트만 분석",
         ))
     return advices
 
@@ -104,7 +120,7 @@ if mode == "full":
             st.stop()
     st.caption("모드: 전체 분석 (퀀트 + AI)")
 else:
-    with st.spinner("가격 업데이트 중..."):
+    with st.spinner("가격 + 퀀트 분석 중... (약 30초~1분)"):
         try:
             advices = run_price_only()
         except Exception as e:
@@ -145,10 +161,10 @@ def make_rows(advices_list, is_us=False, full_mode=True):
             "수익률(%)": round(a.pnl_pct, 1),
             "평가손익": pnl_str,
             "비중(%)": round(a.weight_pct, 1),
+            "퀀트": round(a.signal.quant_score, 2),
         }
         if full_mode:
             icon = ACTION_COLORS.get(a.action, "●")
-            row["퀀트"] = round(a.signal.quant_score, 2)
             row["LLM"] = round(a.signal.llm_score, 2)
             row["종합"] = round(a.signal.combined_score, 2)
             row["신호"] = a.signal.action
