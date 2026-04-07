@@ -9,10 +9,13 @@ except Exception:
     pass
 
 import streamlit as st
+st.set_page_config(page_title="포트폴리오", page_icon="💼", layout="wide")
+
+from app.auth import require_login
+require_login()
+
 import pandas as pd
 import plotly.express as px
-
-st.set_page_config(page_title="포트폴리오", page_icon="💼", layout="wide")
 st.title("💼 포트폴리오 현황")
 
 

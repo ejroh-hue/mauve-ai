@@ -4,9 +4,13 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import streamlit as st
+st.set_page_config(page_title="종목발굴", page_icon="🔎", layout="wide")
+
+from app.auth import require_login
+require_login()
+
 import pandas as pd
 
-st.set_page_config(page_title="종목발굴", page_icon="🔎", layout="wide")
 st.title("🔎 종목 발굴")
 st.markdown("포트폴리오에 없는 유망 종목/ETF를 스크리닝합니다.")
 

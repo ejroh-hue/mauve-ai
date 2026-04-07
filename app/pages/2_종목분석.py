@@ -4,12 +4,16 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import streamlit as st
+st.set_page_config(page_title="종목분석", page_icon="🔍", layout="wide")
+
+from app.auth import require_login
+require_login()
+
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import ta
 
-st.set_page_config(page_title="종목분석", page_icon="🔍", layout="wide")
 st.title("🔍 종목 상세 분석")
 
 from src.data.portfolio import load_portfolio

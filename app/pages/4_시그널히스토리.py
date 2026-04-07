@@ -4,10 +4,14 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import streamlit as st
+st.set_page_config(page_title="시그널 히스토리", page_icon="📜", layout="wide")
+
+from app.auth import require_login
+require_login()
+
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="시그널 히스토리", page_icon="📜", layout="wide")
 st.title("📜 시그널 히스토리")
 
 from src.storage.db import get_signal_history, get_portfolio_snapshots

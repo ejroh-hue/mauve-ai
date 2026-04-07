@@ -5,9 +5,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
 import streamlit as st
+st.set_page_config(page_title="설정", page_icon="⚙️", layout="wide")
+
+from app.auth import require_login
+require_login()
+
 import yaml
 
-st.set_page_config(page_title="설정", page_icon="⚙️", layout="wide")
 st.title("⚙️ 설정")
 
 portfolio_path = os.path.join(
