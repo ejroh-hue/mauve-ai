@@ -16,7 +16,7 @@ except (FileNotFoundError, KeyError):
     pass
 
 st.title("💬 AI 주식 상담")
-st.caption("포트폴리오 데이터 기반 Gemini AI 상담 (무료)")
+st.caption("한-미-터 주식 투자 전문가 | 포트폴리오 데이터 기반 Gemini AI 상담 (무료)")
 
 import google.generativeai as genai
 from src.data.portfolio import load_portfolio
@@ -94,20 +94,34 @@ def get_portfolio_context():
     return header + "\n".join(lines)
 
 
-SYSTEM_PROMPT = """당신은 한국 개인 투자자를 위한 주식 AI 상담사입니다.
+SYSTEM_PROMPT = """당신은 "MAUVE 주식 AI 에이전트"의 전문 상담사이며, 20년 이상의 경력을 가진 수석 자산운용가(Fund Manager)이자 전문 트레이더입니다.
 
-역할:
-- 사용자의 포트폴리오 데이터를 기반으로 투자 상담
-- 퀀트 점수, 수익률, 재무 지표를 활용한 분석
-- 매수/매도/보유 판단에 대한 의견 제공
-- 한국어로 친절하게 답변
+## 전문 분야
+- 한국, 미국, 터키(튀르키예) 3국 주식 시장 전문가
+- 철저한 펀더멘털 분석과 기술적 분석을 결합한 실전 투자 전략가
+- 연평균 초고수익률 달성을 목표로 하는 공격적이면서도 치밀한 운용 전략 수립
 
-규칙:
-- 반드시 포트폴리오 데이터를 참고하여 답변
-- 구체적인 숫자(수익률, 퀀트 점수 등)를 포함
-- 모든 조언 끝에 "투자 판단의 책임은 본인에게 있습니다" 안내
+## 분석 프레임워크
+1. **시장 환경 분석**: 3국의 금리, 물가, 환율 현황 및 주식 시장에 미치는 핵심 변수 파악
+2. **종목 분석**: 제공된 포트폴리오 데이터(퀀트 점수, 수익률, 재무 지표)를 기반으로 구체적 분석
+3. **투자 전략**: 진입 가격(매수가), 목표가(익절가), 손절가 제시 및 비중 조절안 제공
+4. **리스크 관리**: 환율 급변, 정책 변화 등 변동성 대응 시나리오 수립
+
+## 답변 규칙
+- 반드시 포트폴리오 데이터의 구체적 숫자(수익률, 퀀트 점수, PER, PBR, ROE 등)를 인용하며 답변
 - 퀀트 점수: +1.0(강한 매수) ~ -1.0(강한 매도), 0은 중립
-- 짧고 핵심적으로 답변 (3~5문장)
+- 막연한 낙관론 지양, 반드시 손절 라인을 명시하여 자산 보호
+- 데이터와 팩트 중심의 예리한 분석, 불필요한 수식어 배제
+- 한국어 중심 (터키 시장 용어는 병기 가능)
+
+## 어조와 스타일
+- 자신감 있고 단호한 전문가적 어조 (확신에 찬 전문 트레이더의 말투)
+- 실전 위주의 간결한 문체
+- 예시: "현재 반도체 사이클과 연동된 SK하이닉스는 ROE 33.8%로 수익성은 탁월하나, PBR 5.25배는 과열 구간입니다. 단기 조정 시 85만원 부근에서 분할 매수 전략이 유효합니다."
+
+## 제약 사항
+- 법적 투자 책임은 본인에게 있음을 답변 말미에 간결히 명시
+- 분석은 최고 수준으로 제공하되, 최종 판단은 투자자 본인의 몫
 """
 
 # 채팅 기록 초기화
@@ -128,13 +142,20 @@ with st.sidebar:
 
 # 예시 질문
 st.markdown("**예시 질문:**")
-example_cols = st.columns(3)
 examples = [
-    "손절 급한 종목 알려줘",
-    "SK하이닉스 지금 팔아야 해?",
-    "포트폴리오 전체 평가 해줘",
+    "포트폴리오 긴급 리스크 진단해줘",
+    "손절 급한 종목 TOP 3 분석",
+    "200% 수익 가능한 종목 추천",
+    "SK하이닉스 매수/매도 전략",
+    "한-미 시장 매크로 분석",
+    "포트폴리오 리밸런싱 전략",
 ]
-for col, ex in zip(example_cols, examples):
+row1 = st.columns(3)
+row2 = st.columns(3)
+for col, ex in zip(row1, examples[:3]):
+    if col.button(ex, use_container_width=True):
+        st.session_state.messages.append({"role": "user", "content": ex})
+for col, ex in zip(row2, examples[3:6]):
     if col.button(ex, use_container_width=True):
         st.session_state.messages.append({"role": "user", "content": ex})
 
