@@ -11,7 +11,8 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 import streamlit as st
 
 try:
-    for key in ("GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
+    for key in ("GEMINI_API_KEY", "ANTHROPIC_API_KEY", "SUPABASE_URL", "SUPABASE_KEY",
+                "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
         if key not in os.environ and key in st.secrets:
             os.environ[key] = st.secrets[key]
 except FileNotFoundError:

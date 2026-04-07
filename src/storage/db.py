@@ -1,4 +1,4 @@
-"""SQLite 기반 분석 이력 저장"""
+"""분석 이력 저장 — Supabase(클라우드) 우선, SQLite(로컬) fallback"""
 
 import json
 import sqlite3
@@ -8,6 +8,13 @@ from pathlib import Path
 from typing import Optional
 
 from src.models import FinalSignal, PortfolioAdvice
+
+# Supabase 클라우드 DB 사용 여부 확인
+try:
+    from src.storage import cloud_db as _cloud
+    _USE_CLOUD = _cloud.is_cloud_db_available()
+except Exception:
+    _USE_CLOUD = False
 
 DB_PATH = Path(__file__).parents[2] / "data" / "history.db"
 
@@ -106,6 +113,9 @@ def init_db():
 
 def save_signal(advice: PortfolioAdvice):
     """분석 시그널을 저장합니다."""
+    if _USE_CLOUD:
+        _cloud.save_signal(advice)
+        return
     init_db()
     with _get_conn() as conn:
         conn.execute(
@@ -133,7 +143,9 @@ def save_portfolio_snapshot(advices: list[PortfolioAdvice]):
     """포트폴리오 일별 스냅샷을 저장합니다."""
     if not advices:
         return
-
+    if _USE_CLOUD:
+        _cloud.save_portfolio_snapshot(advices)
+        return
     init_db()
     total_value = sum(a.eval_amount for a in advices)
     total_cost = sum(a.buy_price * a.quantity for a in advices)
@@ -166,6 +178,8 @@ def save_portfolio_snapshot(advices: list[PortfolioAdvice]):
 
 def get_signal_history(ticker: str = None, days: int = 30) -> list[dict]:
     """과거 시그널 이력을 조회합니다."""
+    if _USE_CLOUD:
+        return _cloud.get_signal_history(ticker, days)
     init_db()
     with _get_conn() as conn:
         if ticker:
@@ -198,6 +212,8 @@ def get_signal_history(ticker: str = None, days: int = 30) -> list[dict]:
 
 def get_portfolio_snapshots(days: int = 90) -> list[dict]:
     """포트폴리오 스냅샷 이력을 조회합니다."""
+    if _USE_CLOUD:
+        return _cloud.get_portfolio_snapshots(days)
     init_db()
     with _get_conn() as conn:
         rows = conn.execute(
@@ -214,6 +230,9 @@ def save_trade(
     currency: str = "KRW", notes: str = "",
 ):
     """매도/매수 거래 이력을 저장합니다."""
+    if _USE_CLOUD:
+        _cloud.save_trade(ticker, name, trade_type, quantity, buy_price, sell_price, currency, notes)
+        return
     init_db()
     pnl_amount = (sell_price - buy_price) * quantity
     pnl_pct = ((sell_price - buy_price) / buy_price * 100) if buy_price > 0 else 0
@@ -236,6 +255,8 @@ def save_trade(
 
 def get_trade_history(limit: int = 100) -> list[dict]:
     """거래 이력을 조회합니다."""
+    if _USE_CLOUD:
+        return _cloud.get_trade_history(limit)
     init_db()
     with _get_conn() as conn:
         rows = conn.execute(
