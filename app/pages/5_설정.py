@@ -280,18 +280,26 @@ with tab1:
                 step=0.01 if sel_is_us else 100.0,
             )
 
-            # 손익 미리보기
-            pnl_amount = (sell_price - sel_h["buy_price"]) * sell_qty
+            # 수수료/세금
+            fc3, fc4 = st.columns(2)
+            sell_fee = fc3.number_input("수수료", min_value=0.0, value=0.0, step=1.0,
+                                        help="증권사 수수료")
+            sell_tax = fc4.number_input("세금", min_value=0.0, value=0.0, step=1.0,
+                                        help="거래세 등")
+
+            # 손익 미리보기 (수수료/세금 차감)
+            gross_pnl = (sell_price - sel_h["buy_price"]) * sell_qty
+            net_pnl = gross_pnl - sell_fee - sell_tax
             pnl_pct_preview = (sell_price - sel_h["buy_price"]) / sel_h["buy_price"] * 100 if sel_h["buy_price"] > 0 else 0
             if sel_is_us:
-                st.info(f"예상 손익: **${pnl_amount:+,.2f}** ({pnl_pct_preview:+.2f}%)")
+                st.info(f"예상 손익: **${net_pnl:+,.2f}** ({pnl_pct_preview:+.2f}%) — 수수료 ${sell_fee:,.2f} / 세금 ${sell_tax:,.2f}")
             else:
-                st.info(f"예상 손익: **{pnl_amount:+,.0f}원** ({pnl_pct_preview:+.2f}%)")
+                st.info(f"예상 손익: **{net_pnl:+,.0f}원** ({pnl_pct_preview:+.2f}%) — 수수료 {sell_fee:,.0f}원 / 세금 {sell_tax:,.0f}원")
 
             sell_submitted = st.form_submit_button("매도 확정", type="primary")
 
             if sell_submitted:
-                # 거래 이력 저장
+                # 거래 이력 저장 (수수료/세금 차감된 실제 손익)
                 save_trade(
                     ticker=sel_h["ticker"],
                     name=sel_h["name"],
@@ -300,6 +308,7 @@ with tab1:
                     buy_price=sel_h["buy_price"],
                     sell_price=sell_price,
                     currency="USD" if sel_is_us else "KRW",
+                    notes=f"수수료:{sell_fee:.0f}/세금:{sell_tax:.0f}" if (sell_fee or sell_tax) else "",
                 )
 
                 # 포트폴리오에서 제거 또는 수량 차감
@@ -313,24 +322,39 @@ with tab1:
                 save_portfolio_yaml(pf)
 
                 if sel_is_us:
-                    st.success(f"매도 완료! {sel_h['name']} {sell_qty}주 × ${sell_price:,.2f} = 손익 ${pnl_amount:+,.2f} ({pnl_pct_preview:+.2f}%)")
+                    st.success(f"매도 완료! {sel_h['name']} {sell_qty}주 × ${sell_price:,.2f} = 실현손익 ${net_pnl:+,.2f}")
                 else:
-                    st.success(f"매도 완료! {sel_h['name']} {sell_qty}주 × {sell_price:,.0f}원 = 손익 {pnl_amount:+,.0f}원 ({pnl_pct_preview:+.2f}%)")
+                    st.success(f"매도 완료! {sel_h['name']} {sell_qty}주 × {sell_price:,.0f}원 = 실현손익 {net_pnl:+,.0f}원 (수수료 {sell_fee:,.0f} + 세금 {sell_tax:,.0f})")
                 st.rerun()
 
     # ── 거래 이력 ──
     st.divider()
     st.subheader("📋 매도 이력")
+
+    # 기간 필터
+    from datetime import datetime, timedelta
     from src.storage.db import get_trade_history
-    trades = get_trade_history(limit=50)
+    fc_period = st.selectbox("조회 기간", ["전체", "오늘", "최근 1주", "최근 1개월", "최근 3개월", "최근 1년"], index=0)
+    period_map = {"전체": 9999, "오늘": 1, "최근 1주": 7, "최근 1개월": 30, "최근 3개월": 90, "최근 1년": 365}
+    trades = get_trade_history(limit=500)
+
+    # 기간 필터링
+    if fc_period != "전체" and trades:
+        cutoff = (datetime.now() - timedelta(days=period_map[fc_period])).isoformat()
+        trades = [t for t in trades if t.get("trade_date", "") >= cutoff]
+
     if trades:
         import pandas as pd
         trade_rows = []
         for t in trades:
             is_us = t.get("currency") == "USD"
             sym = "$" if is_us else "원"
+            # 날짜 형식 정리
+            td = t.get("trade_date", "")
+            if "T" in td:
+                td = td[:16].replace("T", " ")
             trade_rows.append({
-                "매도일": t["trade_date"],
+                "매도일": td,
                 "종목명": t["name"],
                 "종목코드": t["ticker"],
                 "수량": t["quantity"],
@@ -338,6 +362,7 @@ with tab1:
                 "매도단가": f"${t['sell_price']:,.2f}" if is_us else f"{t['sell_price']:,.0f}{sym}",
                 "손익": f"${t['pnl_amount']:+,.2f}" if is_us else f"{t['pnl_amount']:+,.0f}{sym}",
                 "수익률": f"{t['pnl_pct']:+.2f}%",
+                "비고": t.get("notes", ""),
             })
         st.dataframe(pd.DataFrame(trade_rows), use_container_width=True, hide_index=True)
 
@@ -349,7 +374,7 @@ with tab1:
         if total_usd != 0:
             tc2.metric("총 실현 손익 (USD)", f"${total_usd:+,.2f}")
     else:
-        st.info("매도 이력이 없습니다.")
+        st.info("해당 기간의 매도 이력이 없습니다.")
 
 
 # ══════════════════════════════════════════

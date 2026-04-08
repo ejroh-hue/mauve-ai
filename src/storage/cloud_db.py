@@ -40,8 +40,20 @@ def save_trade(
     client = _get_client()
     if not client:
         return
-    pnl_amount = (sell_price - buy_price) * quantity
-    pnl_pct = ((sell_price - buy_price) / buy_price * 100) if buy_price > 0 else 0
+    gross_pnl = (sell_price - buy_price) * quantity
+    # notes에서 수수료/세금 파싱: "수수료:430/세금:3742"
+    fee = 0.0
+    tax = 0.0
+    if notes:
+        for part in notes.split("/"):
+            if "수수료:" in part:
+                try: fee = float(part.split(":")[1])
+                except: pass
+            elif "세금:" in part:
+                try: tax = float(part.split(":")[1])
+                except: pass
+    pnl_amount = gross_pnl - fee - tax
+    pnl_pct = (pnl_amount / (buy_price * quantity) * 100) if buy_price > 0 else 0
 
     client.table("trade_history").insert({
         "ticker": ticker,

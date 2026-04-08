@@ -234,8 +234,19 @@ def save_trade(
         _cloud.save_trade(ticker, name, trade_type, quantity, buy_price, sell_price, currency, notes)
         return
     init_db()
-    pnl_amount = (sell_price - buy_price) * quantity
-    pnl_pct = ((sell_price - buy_price) / buy_price * 100) if buy_price > 0 else 0
+    gross_pnl = (sell_price - buy_price) * quantity
+    fee = 0.0
+    tax = 0.0
+    if notes:
+        for part in notes.split("/"):
+            if "수수료:" in part:
+                try: fee = float(part.split(":")[1])
+                except: pass
+            elif "세금:" in part:
+                try: tax = float(part.split(":")[1])
+                except: pass
+    pnl_amount = gross_pnl - fee - tax
+    pnl_pct = (pnl_amount / (buy_price * quantity) * 100) if buy_price > 0 else 0
 
     with _get_conn() as conn:
         conn.execute(
