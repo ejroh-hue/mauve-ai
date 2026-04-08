@@ -8,14 +8,25 @@ import streamlit as st
 st.set_page_config(page_title="설정", page_icon="⚙️", layout="wide")
 
 
-import streamlit as _st_auth
-try:
-    correct_pw = _st_auth.secrets["APP_PASSWORD"]
-    if not _st_auth.session_state.get("authenticated", False):
-        _st_auth.warning("로그인이 필요합니다. 메인 페이지에서 로그인해주세요.")
-        _st_auth.stop()
-except (FileNotFoundError, KeyError):
-    pass
+# --- Auth ---
+def _check_auth():
+    import streamlit as _st
+    try:
+        correct_pw = _st.secrets["APP_PASSWORD"]
+    except (FileNotFoundError, KeyError):
+        return
+    if _st.session_state.get("authenticated", False):
+        return
+    _st.title("🔒 로그인")
+    pw = _st.text_input("비밀번호를 입력하세요", type="password")
+    if _st.button("로그인"):
+        if pw == correct_pw:
+            _st.session_state["authenticated"] = True
+            _st.rerun()
+        else:
+            _st.error("비밀번호가 틀렸습니다.")
+    _st.stop()
+_check_auth()
 
 import yaml
 
