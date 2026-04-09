@@ -181,12 +181,6 @@ holdings:
   buy_price: 23000.0
   account: other
   type: stock
-- ticker: '004020'
-  name: 현대제철
-  quantity: 4
-  buy_price: 38375.0
-  account: other
-  type: stock
 - ticker: 018880
   name: 한온시스템
   quantity: 23
