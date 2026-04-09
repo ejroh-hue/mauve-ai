@@ -160,3 +160,53 @@ def get_portfolio_snapshots(days: int = 90) -> list[dict]:
         .limit(days) \
         .execute()
     return resp.data if resp.data else []
+
+
+# ── 포트폴리오 (클라우드 저장) ────────────────────────
+
+def get_cloud_portfolio() -> list[dict]:
+    """Supabase에서 포트폴리오를 조회합니다."""
+    client = _get_client()
+    if not client:
+        return []
+    resp = client.table("portfolio").select("*").order("id").execute()
+    return resp.data if resp.data else []
+
+
+def update_portfolio_holding(ticker: str, quantity: int, buy_price: float):
+    """종목 수량/매입가 업데이트."""
+    client = _get_client()
+    if not client:
+        return
+    client.table("portfolio").update({
+        "quantity": quantity,
+        "buy_price": round(buy_price, 2),
+        "updated_at": datetime.now().isoformat(),
+    }).eq("ticker", ticker).execute()
+
+
+def delete_portfolio_holding(ticker: str):
+    """종목 삭제 (매도 완료)."""
+    client = _get_client()
+    if not client:
+        return
+    client.table("portfolio").delete().eq("ticker", ticker).execute()
+
+
+def add_portfolio_holding(ticker: str, name: str, quantity: int, buy_price: float,
+                          account: str = "kiwoom", asset_type: str = "stock",
+                          currency: str = "KRW"):
+    """종목 추가."""
+    client = _get_client()
+    if not client:
+        return
+    client.table("portfolio").upsert({
+        "ticker": ticker,
+        "name": name,
+        "quantity": quantity,
+        "buy_price": round(buy_price, 2),
+        "account": account,
+        "asset_type": asset_type,
+        "currency": currency,
+        "updated_at": datetime.now().isoformat(),
+    }, on_conflict="ticker").execute()

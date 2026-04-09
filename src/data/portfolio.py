@@ -1,4 +1,4 @@
-"""YAML 포트폴리오 로더"""
+"""포트폴리오 로더 — Supabase 우선, YAML fallback"""
 
 from pathlib import Path
 from typing import Optional
@@ -10,23 +10,47 @@ from src.models import PortfolioHolding
 _PROJECT_ROOT = Path(__file__).parents[2]
 
 
-def load_portfolio(config_path: Optional[str] = None) -> list[PortfolioHolding]:
-    """portfolio.yaml에서 보유 종목 목록을 로드합니다."""
+def _load_from_cloud() -> list[PortfolioHolding]:
+    """Supabase에서 포트폴리오 로드."""
+    try:
+        from src.storage.cloud_db import get_cloud_portfolio, is_cloud_db_available
+        if not is_cloud_db_available():
+            return []
+        rows = get_cloud_portfolio()
+        if not rows:
+            return []
+        holdings = []
+        for item in rows:
+            q = item.get("quantity", 0)
+            bp = item.get("buy_price", 0)
+            if not q or not bp:
+                continue
+            holdings.append(PortfolioHolding(
+                ticker=str(item["ticker"]),
+                name=item.get("name", ""),
+                quantity=int(q),
+                buy_price=float(bp),
+                account=item.get("account", "default"),
+                asset_type=item.get("asset_type", "stock"),
+                currency=item.get("currency", "KRW"),
+            ))
+        return holdings
+    except Exception:
+        return []
+
+
+def _load_from_yaml(config_path=None) -> list[PortfolioHolding]:
+    """YAML 파일에서 포트폴리오 로드."""
     if config_path is None:
         config_path = _PROJECT_ROOT / "config" / "portfolio.yaml"
-
     with open(config_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
-
     holdings = []
     for item in data.get("holdings", []):
         quantity = item.get("quantity", 0)
         buy_price = item.get("buy_price", 0)
-
-        # 수량이나 매입가가 없는 종목은 건너뛰기
         if not quantity or not buy_price:
             continue
-
         holdings.append(PortfolioHolding(
             ticker=str(item["ticker"]),
             name=item.get("name", ""),
@@ -38,8 +62,15 @@ def load_portfolio(config_path: Optional[str] = None) -> list[PortfolioHolding]:
             buy_date=item.get("buy_date"),
             notes=item.get("notes"),
         ))
-
     return holdings
+
+
+def load_portfolio(config_path: Optional[str] = None) -> list[PortfolioHolding]:
+    """포트폴리오 로드 — Supabase 우선, YAML fallback."""
+    cloud = _load_from_cloud()
+    if cloud:
+        return cloud
+    return _load_from_yaml(config_path)
 
 
 def load_settings(config_path: Optional[str] = None) -> dict:

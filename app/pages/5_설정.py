@@ -225,8 +225,20 @@ with tab1:
                 else:
                     holdings[buy_idx]["quantity"] = new_total_qty
                     holdings[buy_idx]["buy_price"] = round(new_avg_price, 2)
+
+                    # Supabase 포트폴리오 업데이트
+                    try:
+                        from src.storage.cloud_db import update_portfolio_holding, is_cloud_db_available
+                        if is_cloud_db_available():
+                            update_portfolio_holding(buy_h["ticker"], new_total_qty, round(new_avg_price, 2))
+                    except Exception:
+                        pass
+
                     pf["holdings"] = holdings
-                    save_portfolio_yaml(pf)
+                    try:
+                        save_portfolio_yaml(pf)
+                    except Exception:
+                        pass
 
                     if buy_is_us:
                         st.success(f"추가 매수 완료! {buy_h['name']} +{add_qty}주 × ${add_price:,.2f} → 평균 ${new_avg_price:,.2f} × {new_total_qty}주")
@@ -306,13 +318,28 @@ with tab1:
 
                 # 포트폴리오에서 제거 또는 수량 차감
                 remaining = sel_h.get("quantity", 0) - sell_qty
+
+                # Supabase 포트폴리오 업데이트
+                try:
+                    from src.storage.cloud_db import delete_portfolio_holding, update_portfolio_holding, is_cloud_db_available
+                    if is_cloud_db_available():
+                        if remaining <= 0:
+                            delete_portfolio_holding(sel_h["ticker"])
+                        else:
+                            update_portfolio_holding(sel_h["ticker"], remaining, sel_h["buy_price"])
+                except Exception:
+                    pass
+
+                # YAML도 업데이트 (로컬용)
                 if remaining <= 0:
                     holdings.pop(sel_idx)
                 else:
                     holdings[sel_idx]["quantity"] = remaining
-
                 pf["holdings"] = holdings
-                save_portfolio_yaml(pf)
+                try:
+                    save_portfolio_yaml(pf)
+                except Exception:
+                    pass
 
                 if sel_is_us:
                     st.success(f"매도 완료! {sel_h['name']} {sell_qty}주 × ${sell_price:,.2f} = 실현손익 ${net_pnl:+,.2f}")
