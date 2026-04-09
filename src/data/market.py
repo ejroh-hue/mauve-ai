@@ -37,6 +37,18 @@ def get_usd_krw() -> float:
             return float(rate)
     except Exception:
         pass
+    # 3. exchangerate-api fallback (클라우드 환경 대응)
+    try:
+        resp = requests.get(
+            "https://open.er-api.com/v6/latest/USD",
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            rate = resp.json().get("rates", {}).get("KRW")
+            if rate and float(rate) > 0:
+                return float(rate)
+    except Exception:
+        pass
     return 1450.0  # fallback (최근 환율 근사치)
 
 

@@ -1,6 +1,7 @@
 """설정 페이지 — 포트폴리오 종목 관리 (폼 방식)"""
 
 import sys, os, io
+from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
@@ -8,25 +9,14 @@ import streamlit as st
 st.set_page_config(page_title="설정", page_icon="⚙️", layout="wide")
 
 
-# --- Auth ---
-def _check_auth():
-    import streamlit as _st
-    try:
-        correct_pw = _st.secrets["APP_PASSWORD"]
-    except (FileNotFoundError, KeyError):
-        return
-    if _st.session_state.get("authenticated", False):
-        return
-    _st.title("🔒 로그인")
-    pw = _st.text_input("비밀번호를 입력하세요", type="password")
-    if _st.button("로그인"):
-        if pw == correct_pw:
-            _st.session_state["authenticated"] = True
-            _st.rerun()
-        else:
-            _st.error("비밀번호가 틀렸습니다.")
-    _st.stop()
-_check_auth()
+# Auth check
+try:
+    _pw = st.secrets["APP_PASSWORD"]
+    if not st.session_state.get("authenticated", False):
+        st.warning("메인 페이지에서 로그인해주세요.")
+        st.stop()
+except (FileNotFoundError, KeyError):
+    pass
 
 import yaml
 
@@ -280,6 +270,8 @@ with tab1:
                 step=0.01 if sel_is_us else 100.0,
             )
 
+            sell_date = st.date_input("매도 일자", value=datetime.now().date())
+
             # 수수료/세금
             fc3, fc4 = st.columns(2)
             sell_fee = fc3.number_input("수수료", min_value=0.0, value=0.0, step=1.0,
@@ -309,6 +301,7 @@ with tab1:
                     sell_price=sell_price,
                     currency="USD" if sel_is_us else "KRW",
                     notes=f"수수료:{sell_fee:.0f}/세금:{sell_tax:.0f}" if (sell_fee or sell_tax) else "",
+                    trade_date=datetime.combine(sell_date, datetime.min.time()),
                 )
 
                 # 포트폴리오에서 제거 또는 수량 차감
@@ -332,7 +325,6 @@ with tab1:
     st.subheader("📋 매도 이력")
 
     # 기간 필터
-    from datetime import datetime, timedelta
     from src.storage.db import get_trade_history
     fc_period = st.selectbox("조회 기간", ["전체", "오늘", "최근 1주", "최근 1개월", "최근 3개월", "최근 1년"], index=0)
     period_map = {"전체": 9999, "오늘": 1, "최근 1주": 7, "최근 1개월": 30, "최근 3개월": 90, "최근 1년": 365}

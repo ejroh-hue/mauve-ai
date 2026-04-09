@@ -228,10 +228,11 @@ def save_trade(
     ticker: str, name: str, trade_type: str,
     quantity: int, buy_price: float, sell_price: float,
     currency: str = "KRW", notes: str = "",
+    trade_date: Optional[datetime] = None,
 ):
     """매도/매수 거래 이력을 저장합니다."""
     if _USE_CLOUD:
-        _cloud.save_trade(ticker, name, trade_type, quantity, buy_price, sell_price, currency, notes)
+        _cloud.save_trade(ticker, name, trade_type, quantity, buy_price, sell_price, currency, notes, trade_date)
         return
     init_db()
     gross_pnl = (sell_price - buy_price) * quantity
@@ -248,6 +249,8 @@ def save_trade(
     pnl_amount = gross_pnl - fee - tax
     pnl_pct = (pnl_amount / (buy_price * quantity) * 100) if buy_price > 0 else 0
 
+    dt = trade_date if trade_date else datetime.now()
+
     with _get_conn() as conn:
         conn.execute(
             """INSERT INTO trade_history
@@ -256,7 +259,7 @@ def save_trade(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 ticker, name, trade_type,
-                datetime.now().strftime("%Y-%m-%d %H:%M"),
+                dt.strftime("%Y-%m-%d %H:%M"),
                 quantity, buy_price, sell_price,
                 round(pnl_amount, 2), round(pnl_pct, 2),
                 currency, notes,

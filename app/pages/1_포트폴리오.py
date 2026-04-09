@@ -12,25 +12,6 @@ import streamlit as st
 st.set_page_config(page_title="포트폴리오", page_icon="💼", layout="wide")
 
 
-# --- Auth ---
-def _check_auth():
-    import streamlit as _st
-    try:
-        correct_pw = _st.secrets["APP_PASSWORD"]
-    except (FileNotFoundError, KeyError):
-        return
-    if _st.session_state.get("authenticated", False):
-        return
-    _st.title("🔒 로그인")
-    pw = _st.text_input("비밀번호를 입력하세요", type="password")
-    if _st.button("로그인"):
-        if pw == correct_pw:
-            _st.session_state["authenticated"] = True
-            _st.rerun()
-        else:
-            _st.error("비밀번호가 틀렸습니다.")
-    _st.stop()
-_check_auth()
 
 import pandas as pd
 import plotly.express as px

@@ -36,6 +36,7 @@ def save_trade(
     ticker: str, name: str, trade_type: str,
     quantity: int, buy_price: float, sell_price: float,
     currency: str = "KRW", notes: str = "",
+    trade_date: Optional[datetime] = None,
 ):
     client = _get_client()
     if not client:
@@ -55,11 +56,13 @@ def save_trade(
     pnl_amount = gross_pnl - fee - tax
     pnl_pct = (pnl_amount / (buy_price * quantity) * 100) if buy_price > 0 else 0
 
+    dt = trade_date if trade_date else datetime.now()
+
     client.table("trade_history").insert({
         "ticker": ticker,
         "name": name,
         "trade_type": trade_type,
-        "trade_date": datetime.now().isoformat(),
+        "trade_date": dt.isoformat(),
         "quantity": quantity,
         "buy_price": round(buy_price, 2),
         "sell_price": round(sell_price, 2),
