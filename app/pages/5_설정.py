@@ -301,7 +301,7 @@ with tab1:
                     sell_price=sell_price,
                     currency="USD" if sel_is_us else "KRW",
                     notes=f"수수료:{sell_fee:.0f}/세금:{sell_tax:.0f}" if (sell_fee or sell_tax) else "",
-                    trade_date=datetime(sell_date.year, sell_date.month, sell_date.day),
+                    trade_date=datetime.strptime(str(sell_date), "%Y-%m-%d"),
                 )
 
                 # 포트폴리오에서 제거 또는 수량 차감
