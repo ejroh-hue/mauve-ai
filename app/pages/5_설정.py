@@ -55,11 +55,33 @@ tab1, tab2, tab3 = st.tabs(["📋 종목 관리", "⚖️ 분석 설정", "🔑 
 # ══════════════════════════════════════════
 with tab1:
 
+    # Supabase 우선, YAML fallback
     try:
-        pf = load_portfolio_yaml()
-        holdings = pf.get("holdings", [])
+        from src.storage.cloud_db import get_cloud_portfolio, is_cloud_db_available
+        if is_cloud_db_available():
+            cloud_holdings = get_cloud_portfolio()
+            if cloud_holdings:
+                holdings = [
+                    {
+                        "ticker": h["ticker"],
+                        "name": h.get("name", ""),
+                        "quantity": h.get("quantity", 0),
+                        "buy_price": h.get("buy_price", 0),
+                        "account": h.get("account", "kiwoom"),
+                        "type": h.get("asset_type", "stock"),
+                        "currency": h.get("currency", "KRW"),
+                    }
+                    for h in cloud_holdings
+                ]
+                pf = {"holdings": holdings}
+            else:
+                pf = load_portfolio_yaml()
+                holdings = pf.get("holdings", [])
+        else:
+            pf = load_portfolio_yaml()
+            holdings = pf.get("holdings", [])
     except Exception as e:
-        st.error(f"portfolio.yaml 로드 실패: {e}")
+        st.error(f"포트폴리오 로드 실패: {e}")
         st.stop()
 
     # ── 현재 보유 종목 테이블 ──

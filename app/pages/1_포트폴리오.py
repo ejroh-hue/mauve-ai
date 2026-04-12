@@ -189,12 +189,13 @@ def summary_cards(advices_list, is_us=False):
 
     c1, c2, c3, c4 = st.columns(4)
     if is_us:
-        c1.metric("총 평가금액", f"${total_eval/usd_krw:,.0f}  ({total_eval:,.0f}원)")
-        c2.metric("총 매입금액", f"${total_cost/usd_krw:,.0f}  ({total_cost:,.0f}원)")
+        c1.metric("총 평가금액", f"${total_eval/usd_krw:,.2f}  ({total_eval:,.0f}원)")
+        c2.metric("총 매입금액", f"${total_cost/usd_krw:,.2f}  ({total_cost:,.0f}원)")
+        c3.metric("총 손익", f"${total_pnl/usd_krw:+,.2f}  ({total_pnl:+,.0f}원)", f"{total_pnl_pct:+.2f}%")
     else:
         c1.metric("총 평가금액", f"{total_eval:,.0f}원")
         c2.metric("총 매입금액", f"{total_cost:,.0f}원")
-    c3.metric("총 손익", f"{total_pnl:+,.0f}원", f"{total_pnl_pct:+.2f}%")
+        c3.metric("총 손익", f"{total_pnl:+,.0f}원", f"{total_pnl_pct:+.2f}%")
     c4.metric("보유 종목", f"{len(advices_list)}개")
     return total_eval
 
