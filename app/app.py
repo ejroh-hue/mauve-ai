@@ -28,11 +28,13 @@ st.set_page_config(
 # --- Password Protection ---
 def check_password() -> bool:
     """Return True if the user entered the correct password."""
-    try:
-        correct_pw = st.secrets["APP_PASSWORD"]
-    except (FileNotFoundError, KeyError):
-        # No APP_PASSWORD configured — skip protection (local dev)
-        return True
+    # 환경변수 우선, st.secrets fallback (Render/Streamlit Cloud 모두 지원)
+    correct_pw = os.environ.get("APP_PASSWORD", "")
+    if not correct_pw:
+        try:
+            correct_pw = st.secrets["APP_PASSWORD"]
+        except (FileNotFoundError, KeyError):
+            return True  # 로컬 개발 환경 — 비밀번호 없으면 통과
 
     if "authenticated" not in st.session_state:
         st.session_state["authenticated"] = False

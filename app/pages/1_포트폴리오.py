@@ -13,6 +13,18 @@ st.set_page_config(page_title="포트폴리오", page_icon="💼", layout="wide"
 
 
 
+# Auth check
+import os as _os
+_pw = _os.environ.get("APP_PASSWORD", "")
+if not _pw:
+    try:
+        _pw = st.secrets["APP_PASSWORD"]
+    except (FileNotFoundError, KeyError):
+        _pw = ""
+if _pw and not st.session_state.get("authenticated", False):
+    st.warning("메인 페이지에서 로그인해주세요.")
+    st.stop()
+
 import pandas as pd
 import plotly.express as px
 st.title("💼 포트폴리오 현황")
