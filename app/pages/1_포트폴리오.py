@@ -30,7 +30,7 @@ import plotly.express as px
 st.title("💼 포트폴리오 현황")
 
 
-from src.data.market import is_us_ticker, get_usd_krw, get_realtime_price, fetch_ohlcv, fetch_us_ohlcv
+from src.data.market import is_us_ticker, get_usd_krw, get_realtime_price, fetch_ohlcv, fetch_us_ohlcv, fetch_fundamentals
 from src.data.portfolio import load_portfolio
 from src.analysis.quant import analyze_quant
 from src.models import PortfolioAdvice, FinalSignal
@@ -51,6 +51,7 @@ def run_price_only():
     # 총 평가액 계산
     prices = {}
     quant_signals = {}
+    fund_data = {}
     for h in holdings:
         p = get_realtime_price(h.ticker)
         if p > 0:
@@ -67,6 +68,15 @@ def run_price_only():
             quant_signals[h.ticker] = analyze_quant(h.ticker, df)
         except Exception:
             quant_signals[h.ticker] = None
+
+        # PER 데이터 (한국 주식만)
+        if not is_us_ticker(h.ticker):
+            try:
+                fund_data[h.ticker] = fetch_fundamentals(h.ticker)
+            except Exception:
+                fund_data[h.ticker] = {}
+        else:
+            fund_data[h.ticker] = {}
 
     total_eval = sum(
         prices[h.ticker] * h.quantity * (usd_krw_rate if is_us_ticker(h.ticker) else 1)
@@ -91,13 +101,17 @@ def run_price_only():
             combined_score=q_score, quant_score=q_score, llm_score=0,
             current_price=cur_price, analysis_summary="퀀트만 분석 (AI 미포함)",
         )
+        # PER을 reasoning 필드에 저장 (테이블 표시용)
+        per = fund_data.get(h.ticker, {}).get("per")
+        per_str = f"{per:.1f}" if per else "-"
+
         advices.append(PortfolioAdvice(
             ticker=h.ticker, name=h.name,
             current_price=cur_price, buy_price=h.buy_price,
             quantity=h.quantity, eval_amount=eval_amount,
             pnl_amount=pnl_amount, pnl_pct=pnl_pct,
             weight_pct=weight_pct, signal=signal,
-            action="—", reasoning="퀀트만 분석",
+            action="—", reasoning=f"PER:{per_str}",
         ))
     return advices
 
@@ -157,6 +171,11 @@ def make_rows(advices_list, is_us=False, full_mode=True):
             price_str = f"{a.current_price:,.0f}원"
             buy_str   = f"{a.buy_price:,.0f}원"
             pnl_str   = f"{a.pnl_amount:+,.0f}원"
+        # reasoning에서 PER 파싱
+        per_str = "-"
+        if a.reasoning and "PER:" in a.reasoning:
+            per_str = a.reasoning.split("PER:")[1].split(" ")[0].strip()
+
         row = {
             "종목명": a.name,
             "티커": a.ticker,
@@ -165,6 +184,7 @@ def make_rows(advices_list, is_us=False, full_mode=True):
             "수익률(%)": round(a.pnl_pct, 1),
             "평가손익": pnl_str,
             "비중(%)": round(a.weight_pct, 1),
+            "PER": per_str,
             "퀀트": round(a.signal.quant_score, 2),
         }
         if full_mode:
